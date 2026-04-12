@@ -46,6 +46,6 @@ w, b = model.get_w_b()
 # 计算与真实参数的误差
 
 print(w.shape,data.w.shape)
-print(f'error in estimating w: {data.w - w}')   # 直接广播就行
-# print(f'error in estimating w: {data.w - w.reshape(data.w.shape)}')
+print(f'error in estimating w: {data.w - w}')   # 直接广播就行(因为这里的w是一维向量)
+# print(f'error in estimating w: {data.w - w.reshape(data.w.shape)}') # 如果w不是一维向量，那么也不能用这个，得用Transpose转置w矩阵
 print(f'error in estimating b: {data.b - b}')
