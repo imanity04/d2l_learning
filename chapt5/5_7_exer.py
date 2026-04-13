@@ -57,6 +57,27 @@ def get_dataloader(self, train):
                torch.log(get_tensor(data[label])).reshape((-1, 1)))  # Y
     return self.get_tensorloader(tensors, train)
 
+def l2_penalty(w):
+    return (w ** 2).sum() / 2
+
+class PredModel(d2l.LinearRegression):
+    def __init__(self,lr,num_hiddens,dropout,lambd):
+        super().__init__(lr)
+        self.lr = lr
+        self.wd = lambd
+        self.net = nn.Sequential(
+            nn.LazyLinear(num_hiddens),nn.Dropout(dropout),nn.ReLU(),nn.LazyLinear(1))
+        
+    def forward(self,X):
+        return self.net(X)
+    
+    # def configure_optimizers(self):
+    #     return torch.optim.SGD([
+    #         {'params': [self.net[0].weight], 'weight_decay': self.wd},
+    #         {'params': [self.net[0].bias]},
+    #         {'params': [self.net[3].weight], 'weight_decay': self.wd},
+    #         {'params': [self.net[3].bias]}], lr=self.lr)
+
 def k_fold_data(data, k):
     rets = []
     fold_size = data.train.shape[0] // k
@@ -66,10 +87,10 @@ def k_fold_data(data, k):
                                 data.train.loc[idx]))
     return rets
 
-def k_fold(trainer, data, k, lr):
+def k_fold(trainer, data, k, lr, num_hiddens, dropout, lambd):
     val_loss, models = [], []
     for i, data_fold in enumerate(k_fold_data(data, k)):
-        model = d2l.LinearRegression(lr)
+        model = PredModel(lr,num_hiddens,dropout,lambd)
         model.board.yscale='log'
         if i != 0: model.board.display = False
         trainer.fit(model, data_fold)
@@ -78,8 +99,8 @@ def k_fold(trainer, data, k, lr):
     print(f'average validation log mse = {sum(val_loss)/len(val_loss)}')
     return models
 
-trainer = d2l.Trainer(max_epochs=10)
-models = k_fold(trainer, data, k=5, lr=0.01)
+trainer = d2l.Trainer(max_epochs=50)
+models = k_fold(trainer, data, k=5, lr=0.005, num_hiddens=256, dropout=0.08, lambd=3)
 
 preds = [model(torch.tensor(data.val.values.astype(float), dtype=torch.float32))
          for model in models]
